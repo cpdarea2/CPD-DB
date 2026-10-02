@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบริหารและจัดเก็บข้อมูลหน่วยงาน (Agency Data Management Portal)</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Sarabun', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: 'Sarabun', 'Inter', sans-serif;
+    }
+    .card-shadow {
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col text-slate-800">
+
+  <!-- Header / Navigation Banner -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/30">
+            <i class="fa-solid me-0 fa-chart-pie text-lg text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-wide text-white leading-tight">Agency Data Management Portal</h1>
+            <p class="text-xs text-slate-400">ระบบบันทึก จัดการ และแสดงผลข้อมูลหน่วยงานออนไลน์</p>
+          </div>
+        </div>
+
+        <!-- System Actions & Info -->
+        <div class="flex items-center gap-3">
+          <button onclick="loadMockData()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition">
+            <i class="fa-solid fa-rotate-right"></i> รีเซ็ตข้อมูลตัวอย่าง
+          </button>
+          <div class="h-6 w-px bg-slate-800 hidden md:block"></div>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-semibold text-sm">
+              AD
+            </div>
+            <span class="text-sm font-medium hidden sm:inline text-slate-200">ผู้ดูแลระบบ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI Summary Cards Banner -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total Submissions Card -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-100 card-shadow transition hover:-translate-y-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">รายการทั้งหมด</span>
+          <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+            <i class="fa-solid fa-folder-open text-base"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span id="kpi-total" class="text-2xl font-bold text-slate-900">0</span>
+          <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+            <i class="fa-solid fa-database mr-1"></i> อัปเดตสด
+          </span>
+        </div>
+      </div>
+
+      <!-- Pending Card -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-100 card-shadow transition hover:-translate-y-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">รอดำเนินการ</span>
+          <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i class="fa-solid fa-clock text-base"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span id="kpi-pending" class="text-2xl font-bold text-slate-900">0</span>
+          <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+            Pending
+          </span>
+        </div>
+      </div>
+
+      <!-- Completed Card -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-100 card-shadow transition hover:-translate-y-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">เสร็จสิ้นแล้ว</span>
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="fa-solid fa-circle-check text-base"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span id="kpi-completed" class="text-2xl font-bold text-slate-900">0</span>
+          <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+            Completed
+          </span>
+        </div>
+      </div>
+
+      <!-- Total Value Metric -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-100 card-shadow transition hover:-translate-y-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">มูลค่า/ปริมาณรวม</span>
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <i class="fa-solid fa-coins text-base"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span id="kpi-value" class="text-2xl font-bold text-slate-900">0</span>
+          <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+            หน่วยรวม
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-slate-200">
+      <nav class="flex space-x-2 sm:space-x-8" aria-label="Tabs">
+        <button onclick="switchTab('input-tab')" id="tab-btn-input-tab" class="tab-btn active inline-flex items-center gap-2 py-3 px-3 border-b-2 font-medium text-sm border-sky-600 text-sky-600 transition">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>1. กรอกข้อมูลใหม่ (Input)</span>
+        </button>
+        <button onclick="switchTab('dashboard-tab')" id="tab-btn-dashboard-tab" class="tab-btn inline-flex items-center gap-2 py-3 px-3 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition">
+          <i class="fa-solid fa-chart-column"></i>
+          <span>2. สรุปผล Dashboard</span>
+        </button>
+        <button onclick="switchTab('table-tab')" id="tab-btn-table-tab" class="tab-btn inline-flex items-center gap-2 py-3 px-3 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition">
+          <i class="fa-solid fa-table"></i>
+          <span>3. รายการ & แก้ไขข้อมูล</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tab 1: Input Data Content -->
+    <div id="input-tab" class="tab-content block">
+      <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 card-shadow">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">แบบฟอร์มบันทึกข้อมูลหน่วยงาน</h2>
+            <p class="text-sm text-slate-500">กรอกรายละเอียดข้อมูลปฏิบัติงานหรือสถิติโครงการ ข้อมูลจะอัปเดตไปยัง Dashboard ทันที</p>
+          </div>
+          <button type="button" onclick="fillMockForm()" class="self-start sm:self-auto text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> สุ่มกรอกอัตโนมัติ
+          </button>
+        </div>
+
+        <form id="dataForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Entry Date -->
+            <div>
+              <label for="form-date" class="block text-xs font-semibold text-slate-700 uppercase mb-2">วันที่บันทึก <span class="text-rose-500">*</span></label>
+              <input type="date" id="form-date" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition">
+            </div>
+
+            <!-- Agency / Department -->
+            <div>
+              <label for="form-dept" class="block text-xs font-semibold text-slate-700 uppercase mb-2">หน่วยงาน / กอง <span class="text-rose-500">*</span></label>
+              <select id="form-dept" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition bg-white">
+                <option value="">-- เลือกหน่วยงาน --</option>
+                <option value="กองยุทธศาสตร์และแผนงาน">กองยุทธศาสตร์และแผนงาน</option>
+                <option value="กองเทคโนโลยีสารสนเทศ">กองเทคโนโลยีสารสนเทศ</option>
+                <option value="สำนักบริหารงานกลาง">สำนักบริหารงานกลาง</option>
+                <option value="กองการเงินและบัญชี">กองการเงินและบัญชี</option>
+                <option value="ศูนย์บริการประชาชน">ศูนย์บริการประชาชน</option>
+              </select>
+            </div>
+
+            <!-- Category -->
+            <div>
+              <label for="form-category" class="block text-xs font-semibold text-slate-700 uppercase mb-2">หมวดหมู่ข้อมูล <span class="text-rose-500">*</span></label>
+              <select id="form-category" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition bg-white">
+                <option value="">-- เลือกหมวดหมู่ --</option>
+                <option value="งานบริการประชาชน">งานบริการประชาชน</option>
+                <option value="การเบิกจ่ายงบประมาณ">การเบิกจ่ายงบประมาณ</option>
+                <option value="ข้อร้องเรียน/แจ้งปัญหา">ข้อร้องเรียน/แจ้งปัญหา</option>
+                <option value="โครงการและกิจกรรม">โครงการและกิจกรรม</option>
+                <option value="งานพัฒนาระบบ/IT">งานพัฒนาระบบ/IT</option>
+              </select>
+            </div>
+
+            <!-- Title / Topic -->
+            <div class="md:col-span-2">
+              <label for="form-title" class="block text-xs font-semibold text-slate-700 uppercase mb-2">หัวข้อ / เรื่อง <span class="text-rose-500">*</span></label>
+              <input type="text" id="form-title" placeholder="ระบุชื่อโครงการ หรือเรื่องที่ต้องการบันทึก" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition">
+            </div>
+
+            <!-- Value / Quantity -->
+            <div>
+              <label for="form-value" class="block text-xs font-semibold text-slate-700 uppercase mb-2">จำนวน / มูลค่า (หน่วยนับ) <span class="text-rose-500">*</span></label>
+              <input type="number" id="form-value" min="0" step="any" placeholder="0.00" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition">
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label for="form-status" class="block text-xs font-semibold text-slate-700 uppercase mb-2">สถานะงาน <span class="text-rose-500">*</span></label>
+              <select id="form-status" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition bg-white">
+                <option value="Pending">รอดำเนินการ (Pending)</option>
+                <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+                <option value="Completed">เสร็จสมบูรณ์ (Completed)</option>
+                <option value="Urgent">เร่งด่วน (Urgent)</option>
+              </select>
+            </div>
+
+            <!-- Details / Notes -->
+            <div class="md:col-span-2 lg:col-span-3">
+              <label for="form-notes" class="block text-xs font-semibold text-slate-700 uppercase mb-2">รายละเอียดเพิ่มเติม / หมายเหตุ</label>
+              <textarea id="form-notes" rows="3" placeholder="ระบุข้อมูลเพิ่มเติม (ถ้ามี)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm transition"></textarea>
+            </div>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button type="reset" class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium transition">
+              ล้างข้อมูล
+            </button>
+            <button type="submit" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium transition shadow-lg shadow-sky-600/20 flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>บันทึกข้อมูลเข้าสู่ระบบ</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tab 2: Dashboard & Analytics Content -->
+    <div id="dashboard-tab" class="tab-content hidden space-y-6">
+      
+      <!-- Filter Bar for Dashboard -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-100 card-shadow flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-sm font-bold text-slate-700">
+          <i class="fa-solid fa-filter text-sky-600"></i>
+          <span>ตัวกรองการแสดงผล Dashboard</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <select id="dash-filter-dept" onchange="renderDashboardCharts()" class="text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+            <option value="ALL">ทุกหน่วยงาน</option>
+            <option value="กองยุทธศาสตร์และแผนงาน">กองยุทธศาสตร์และแผนงาน</option>
+            <option value="กองเทคโนโลยีสารสนเทศ">กองเทคโนโลยีสารสนเทศ</option>
+            <option value="สำนักบริหารงานกลาง">สำนักบริหารงานกลาง</option>
+            <option value="กองการเงินและบัญชี">กองการเงินและบัญชี</option>
+            <option value="ศูนย์บริการประชาชน">ศูนย์บริการประชาชน</option>
+          </select>
+
+          <select id="dash-filter-status" onchange="renderDashboardCharts()" class="text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+            <option value="ALL">ทุกสถานะ</option>
+            <option value="Pending">รอดำเนินการ</option>
+            <option value="In Progress">กำลังดำเนินการ</option>
+            <option value="Completed">เสร็จสมบูรณ์</option>
+            <option value="Urgent">เร่งด่วน</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Department Bar Chart -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100 card-shadow flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">สรุปจำนวนงานแยกตามหน่วยงาน</h3>
+              <p class="text-xs text-slate-500">เปรียบเทียบสถิติรายการของแต่ละกอง/สำนัก</p>
+            </div>
+            <span class="text-xs font-semibold text-sky-600 bg-sky-50 px-2.5 py-1 rounded-lg">Bar Chart</span>
+          </div>
+          <div class="relative w-full h-72">
+            <canvas id="deptChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Status Doughnut Chart -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 card-shadow flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">สัดส่วนสถานะงาน</h3>
+              <p class="text-xs text-slate-500">การกระจายตัวของสถานะงานทั้งหมด</p>
+            </div>
+            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">Doughnut</span>
+          </div>
+          <div class="relative w-full h-72 flex items-center justify-center">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Data Records Table Content -->
+    <div id="table-tab" class="tab-content hidden">
+      <div class="bg-white rounded-2xl border border-slate-100 card-shadow overflow-hidden">
+        
+        <!-- Table Toolbar -->
+        <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">ตารางจัดการและแก้ไขข้อมูล</h2>
+            <p class="text-sm text-slate-500">สามารถค้นหา ดูรายละเอียด แก้ไขข้อมูลสด หรือส่งออกเป็น CSV</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="exportToCSV()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition flex items-center gap-2 shadow-sm">
+              <i class="fa-solid fa-file-csv text-sm"></i>
+              <span>ส่งออก CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters & Search Line -->
+        <div class="p-4 bg-slate-50/70 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Search input -->
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="table-search" oninput="renderRecordsTable()" placeholder="ค้นหาตามชื่อเรื่อง หรือหมายเหตุ..." class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+          </div>
+
+          <!-- Dept Filter -->
+          <div>
+            <select id="table-filter-dept" onchange="renderRecordsTable()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+              <option value="ALL">เลือกดูทุกหน่วยงาน</option>
+              <option value="กองยุทธศาสตร์และแผนงาน">กองยุทธศาสตร์และแผนงาน</option>
+              <option value="กองเทคโนโลยีสารสนเทศ">กองเทคโนโลยีสารสนเทศ</option>
+              <option value="สำนักบริหารงานกลาง">สำนักบริหารงานกลาง</option>
+              <option value="กองการเงินและบัญชี">กองการเงินและบัญชี</option>
+              <option value="ศูนย์บริการประชาชน">ศูนย์บริการประชาชน</option>
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div>
+            <select id="table-filter-status" onchange="renderRecordsTable()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+              <option value="ALL">เลือกดูทุกสถานะ</option>
+              <option value="Pending">รอดำเนินการ</option>
+              <option value="In Progress">กำลังดำเนินการ</option>
+              <option value="Completed">เสร็จสมบูรณ์</option>
+              <option value="Urgent">เร่งด่วน</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Data Table Container -->
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100/70 text-slate-600 font-semibold border-b border-slate-200">
+                <th class="py-3 px-4">วันที่</th>
+                <th class="py-3 px-4">หน่วยงาน</th>
+                <th class="py-3 px-4">หมวดหมู่</th>
+                <th class="py-3 px-4">หัวข้อ/โครงการ</th>
+                <th class="py-3 px-4 text-right">จำนวน</th>
+                <th class="py-3 px-4 text-center">สถานะ</th>
+                <th class="py-3 px-4 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table Footer / Stats -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
+          <span id="showing-count-text">แสดงผล 0 รายการ</span>
+          <span>ระบบบันทึกเวลาอัตโนมัติ</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Edit Data Modal -->
+  <div id="editModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full card-shadow overflow-hidden transform transition-all">
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+        <h3 class="text-base font-bold flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-sky-400"></i>
+          <span>แก้ไขข้อมูลการปฏิบัติงาน</span>
+        </h3>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="editForm" onsubmit="handleEditFormSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="edit-id">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">วันที่</label>
+            <input type="date" id="edit-date" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">หน่วยงาน</label>
+            <select id="edit-dept" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500 bg-white">
+              <option value="กองยุทธศาสตร์และแผนงาน">กองยุทธศาสตร์และแผนงาน</option>
+              <option value="กองเทคโนโลยีสารสนเทศ">กองเทคโนโลยีสารสนเทศ</option>
+              <option value="สำนักบริหารงานกลาง">สำนักบริหารงานกลาง</option>
+              <option value="กองการเงินและบัญชี">กองการเงินและบัญชี</option>
+              <option value="ศูนย์บริการประชาชน">ศูนย์บริการประชาชน</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">หมวดหมู่</label>
+            <select id="edit-category" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500 bg-white">
+              <option value="งานบริการประชาชน">งานบริการประชาชน</option>
+              <option value="การเบิกจ่ายงบประมาณ">การเบิกจ่ายงบประมาณ</option>
+              <option value="ข้อร้องเรียน/แจ้งปัญหา">ข้อร้องเรียน/แจ้งปัญหา</option>
+              <option value="โครงการและกิจกรรม">โครงการและกิจกรรม</option>
+              <option value="งานพัฒนาระบบ/IT">งานพัฒนาระบบ/IT</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">สถานะ</label>
+            <select id="edit-status" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500 bg-white">
+              <option value="Pending">รอดำเนินการ (Pending)</option>
+              <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+              <option value="Completed">เสร็จสมบูรณ์ (Completed)</option>
+              <option value="Urgent">เร่งด่วน (Urgent)</option>
+            </select>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">หัวข้อ / เรื่อง</label>
+            <input type="text" id="edit-title" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">จำนวน/มูลค่า</label>
+            <input type="number" id="edit-value" step="any" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500">
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">หมายเหตุ</label>
+            <textarea id="edit-notes" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-sky-500"></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium">ยกเลิก</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-medium shadow-sm">บันทึกการแก้ไข</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+  <script>
+    // App State Management
+    const STORAGE_KEY = 'agency_portal_data_v1';
+    let recordsData = [];
+    let deptChartInstance = null;
+    let statusChartInstance = null;
+
+    // Initial Mock Data
+    const INITIAL_MOCK_DATA = [
+      { id: '1', date: '2026-10-01', dept: 'กองเทคโนโลยีสารสนเทศ', category: 'งานพัฒนาระบบ/IT', title: 'พัฒนา Dashboard รองรับบริการประชาชน', value: 150000, status: 'Completed', notes: 'ส่งมอบงานระยะที่ 1 เรียบร้อย' },
+      { id: '2', date: '2026-10-02', dept: 'ศูนย์บริการประชาชน', category: 'งานบริการประชาชน', title: 'รับเรื่องร้องเรียนสอบถามสิทธิประโยชน์', value: 45, status: 'Pending', notes: 'รอส่งเรื่องให้ฝ่ายที่เกี่ยวข้อง' },
+      { id: '3', date: '2026-09-28', dept: 'กองการเงินและบัญชี', category: 'การเบิกจ่ายงบประมาณ', title: 'เบิกจ่ายงบประมาณจัดซื้อวัสดุสำนักงาน', value: 38500, status: 'Completed', notes: 'อนุมัติเรียบร้อย' },
+      { id: '4', date: '2026-10-02', dept: 'สำนักบริหารงานกลาง', category: 'โครงการและกิจกรรม', title: 'จัดอบรมบุคลากรด้านความปลอดภัยไซเบอร์', value: 120, status: 'In Progress', notes: 'อยู่ระหว่างลงทะเบียน' },
+      { id: '5', date: '2026-09-30', dept: 'กองยุทธศาสตร์และแผนงาน', category: 'โครงการและกิจกรรม', title: 'จัดทำแผนยุทธศาสตร์ประจำปี 2027', value: 1, status: 'Urgent', notes: 'ต้องการข้อมูลด่วนภายในสัปดาห์นี้' }
+    ];
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set today's date in form
+      document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
+      
+      // Load saved or initial data
+      loadData();
+      
+      // Initial render
+      updateKPIs();
+      renderRecordsTable();
+      initDashboardCharts();
+    });
+
+    // Data Load & Save Helpers
+    function loadData() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          recordsData = JSON.parse(stored);
+        } catch (e) {
+          recordsData = [...INITIAL_MOCK_DATA];
+        }
+      } else {
+        recordsData = [...INITIAL_MOCK_DATA];
+        saveData();
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsData));
+      updateKPIs();
+      renderRecordsTable();
+      renderDashboardCharts();
+    }
+
+    function loadMockData() {
+      recordsData = [...INITIAL_MOCK_DATA];
+      saveData();
+      showToast('รีเซ็ตข้อมูลตัวอย่างเรียบร้อยแล้ว', 'info');
+    }
+
+    // UI Tab Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-sky-600', 'text-sky-600');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      activeBtn.classList.add('active', 'border-sky-600', 'text-sky-600');
+      activeBtn.classList.remove('border-transparent', 'text-slate-500');
+
+      if (tabId === 'dashboard-tab') {
+        renderDashboardCharts();
+      }
+    }
+
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const bgColors = {
+        success: 'bg-emerald-600',
+        error: 'bg-rose-600',
+        info: 'bg-sky-600'
+      };
+
+      toast.className = `${bgColors[type] || 'bg-slate-800'} text-white px-4 py-3 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Calculate & Update Top KPIs
+    function updateKPIs() {
+      const total = recordsData.length;
+      const pending = recordsData.filter(r => r.status === 'Pending' || r.status === 'Urgent').length;
+      const completed = recordsData.filter(r => r.status === 'Completed').length;
+      const totalVal = recordsData.reduce((acc, r) => acc + (parseFloat(r.value) || 0), 0);
+
+      document.getElementById('kpi-total').textContent = total.toLocaleString();
+      document.getElementById('kpi-pending').textContent = pending.toLocaleString();
+      document.getElementById('kpi-completed').textContent = completed.toLocaleString();
+      document.getElementById('kpi-value').textContent = totalVal.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    // Auto Fill Mock Data into Form
+    function fillMockForm() {
+      const depts = ['กองยุทธศาสตร์และแผนงาน', 'กองเทคโนโลยีสารสนเทศ', 'สำนักบริหารงานกลาง', 'กองการเงินและบัญชี', 'ศูนย์บริการประชาชน'];
+      const categories = ['งานบริการประชาชน', 'การเบิกจ่ายงบประมาณ', 'ข้อร้องเรียน/แจ้งปัญหา', 'โครงการและกิจกรรม', 'งานพัฒนาระบบ/IT'];
+      const statuses = ['Pending', 'In Progress', 'Completed', 'Urgent'];
+      const titles = ['สำรวจความพึงพอใจการให้บริการ', 'จัดซื้ออุปกรณ์คอมพิวเตอร์ประจำไตรมาส', 'รายงานสรุปผลการดำเนินงานประจำเดือน', 'ปรับปรุงระบบฐานข้อมูลส่วนกลาง', 'รับฟังความคิดเห็นภาคประชาชน'];
+
+      document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('form-dept').value = depts[Math.floor(Math.random() * depts.length)];
+      document.getElementById('form-category').value = categories[Math.floor(Math.random() * categories.length)];
+      document.getElementById('form-title').value = titles[Math.floor(Math.random() * titles.length)] + ' #' + Math.floor(Math.random() * 100);
+      document.getElementById('form-value').value = Math.floor(Math.random() * 50000) + 100;
+      document.getElementById('form-status').value = statuses[Math.floor(Math.random() * statuses.length)];
+      document.getElementById('form-notes').value = 'สุ่มกรอกข้อมูลทดสอบระบบ';
+    }
+
+    // Handle Form Submit (Tab 1)
+    function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const newRecord = {
+        id: Date.now().toString(),
+        date: document.getElementById('form-date').value,
+        dept: document.getElementById('form-dept').value,
+        category: document.getElementById('form-category').value,
+        title: document.getElementById('form-title').value,
+        value: parseFloat(document.getElementById('form-value').value) || 0,
+        status: document.getElementById('form-status').value,
+        notes: document.getElementById('form-notes').value
+      };
+
+      recordsData.unshift(newRecord);
+      saveData();
+
+      document.getElementById('dataForm').reset();
+      document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
+
+      showToast('บันทึกข้อมูลเรียบร้อยแล้ว');
+      switchTab('table-tab');
+    }
+
+    // Render Records Data Table (Tab 3)
+    function renderRecordsTable() {
+      const tbody = document.getElementById('records-tbody');
+      const search = document.getElementById('table-search').value.toLowerCase();
+      const filterDept = document.getElementById('table-filter-dept').value;
+      const filterStatus = document.getElementById('table-filter-status').value;
+
+      const filtered = recordsData.filter(item => {
+        const matchSearch = item.title.toLowerCase().includes(search) || (item.notes && item.notes.toLowerCase().includes(search));
+        const matchDept = filterDept === 'ALL' || item.dept === filterDept;
+        const matchStatus = filterStatus === 'ALL' || item.status === filterStatus;
+        return matchSearch && matchDept && matchStatus;
+      });
+
+      document.getElementById('showing-count-text').textContent = `แสดงผล ${filtered.length} จาก ${recordsData.length} รายการ`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-8 text-slate-400">
+              <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+              ไม่พบข้อมูลที่ตรงตามเงื่อนไข
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const statusBadges = {
+        Pending: 'bg-amber-50 text-amber-700 border-amber-200',
+        'In Progress': 'bg-sky-50 text-sky-700 border-sky-200',
+        Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        Urgent: 'bg-rose-50 text-rose-700 border-rose-200'
+      };
+
+      const statusLabels = {
+        Pending: 'รอดำเนินการ',
+        'In Progress': 'กำลังดำเนินการ',
+        Completed: 'เสร็จสมบูรณ์',
+        Urgent: 'เร่งด่วน'
+      };
+
+      tbody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
+          <td class="py-3 px-4 font-mono text-xs text-slate-500">${item.date}</td>
+          <td class="py-3 px-4 font-medium text-slate-800">${item.dept}</td>
+          <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs">${item.category}</span></td>
+          <td class="py-3 px-4">
+            <div class="font-medium text-slate-900">${item.title}</div>
+            ${item.notes ? `<div class="text-xs text-slate-400 truncate max-w-xs">${item.notes}</div>` : ''}
+          </td>
+          <td class="py-3 px-4 text-right font-semibold text-slate-800">${Number(item.value).toLocaleString()}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium border ${statusBadges[item.status] || 'bg-slate-100'}">
+              ${statusLabels[item.status] || item.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button onclick="openEditModal('${item.id}')" class="w-7 h-7 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-600 flex items-center justify-center transition">
+                <i class="fa-solid fa-pen-to-square text-xs"></i>
+              </button>
+              <button onclick="deleteRecord('${item.id}')" class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition">
+                <i class="fa-solid fa-trash text-xs"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Modal Edit Functions
+    function openEditModal(id) {
+      const record = recordsData.find(r => r.id === id);
+      if (!record) return;
+
+      document.getElementById('edit-id').value = record.id;
+      document.getElementById('edit-date').value = record.date;
+      document.getElementById('edit-dept').value = record.dept;
+      document.getElementById('edit-category').value = record.category;
+      document.getElementById('edit-title').value = record.title;
+      document.getElementById('edit-value').value = record.value;
+      document.getElementById('edit-status').value = record.status;
+      document.getElementById('edit-notes').value = record.notes || '';
+
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function handleEditFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-id').value;
+      const index = recordsData.findIndex(r => r.id === id);
+
+      if (index !== -1) {
+        recordsData[index] = {
+          id: id,
+          date: document.getElementById('edit-date').value,
+          dept: document.getElementById('edit-dept').value,
+          category: document.getElementById('edit-category').value,
+          title: document.getElementById('edit-title').value,
+          value: parseFloat(document.getElementById('edit-value').value) || 0,
+          status: document.getElementById('edit-status').value,
+          notes: document.getElementById('edit-notes').value
+        };
+
+        saveData();
+        closeEditModal();
+        showToast('แก้ไขข้อมูลเรียบร้อยแล้ว');
+      }
+    }
+
+    // Delete Record
+    function deleteRecord(id) {
+      if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+        recordsData = recordsData.filter(r => r.id !== id);
+        saveData();
+        showToast('ลบรายการเรียบร้อยแล้ว', 'error');
+      }
+    }
+
+    // Initialize & Update Dashboard Chart.js
+    function initDashboardCharts() {
+      const deptCtx = document.getElementById('deptChart').getContext('2d');
+      const statusCtx = document.getElementById('statusChart').getContext('2d');
+
+      deptChartInstance = new Chart(deptCtx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      statusChartInstance = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          },
+          cutout: '65%'
+        }
+      });
+
+      renderDashboardCharts();
+    }
+
+    function renderDashboardCharts() {
+      if (!deptChartInstance || !statusChartInstance) return;
+
+      const filterDept = document.getElementById('dash-filter-dept').value;
+      const filterStatus = document.getElementById('dash-filter-status').value;
+
+      const filtered = recordsData.filter(item => {
+        const matchDept = filterDept === 'ALL' || item.dept === filterDept;
+        const matchStatus = filterStatus === 'ALL' || item.status === filterStatus;
+        return matchDept && matchStatus;
+      });
+
+      // Aggregate Department Counts
+      const deptsList = ['กองยุทธศาสตร์และแผนงาน', 'กองเทคโนโลยีสารสนเทศ', 'สำนักบริหารงานกลาง', 'กองการเงินและบัญชี', 'ศูนย์บริการประชาชน'];
+      const deptCounts = deptsList.map(dept => filtered.filter(r => r.dept === dept).length);
+
+      deptChartInstance.data = {
+        labels: ['ยุทธศาสตร์', 'ไอที', 'บริหารกลาง', 'การเงิน', 'ศูนย์ประชาชน'],
+        datasets: [{
+          label: 'จำนวนรายการ',
+          data: deptCounts,
+          backgroundColor: '#0284c7',
+          borderRadius: 8
+        }]
+      };
+      deptChartInstance.update();
+
+      // Aggregate Status Counts
+      const statuses = ['Pending', 'In Progress', 'Completed', 'Urgent'];
+      const statusLabels = ['รอดำเนินการ', 'กำลังดำเนินการ', 'เสร็จสมบูรณ์', 'เร่งด่วน'];
+      const statusCounts = statuses.map(st => filtered.filter(r => r.status === st).length);
+
+      statusChartInstance.data = {
+        labels: statusLabels,
+        datasets: [{
+          data: statusCounts,
+          backgroundColor: ['#f59e0b', '#0284c7', '#10b981', '#f43f5e']
+        }]
+      };
+      statusChartInstance.update();
+    }
+
+    // Export Data to CSV Functionality
+    function exportToCSV() {
+      if (recordsData.length === 0) {
+        showToast('ไม่มีข้อมูลสำหรับส่งออก', 'info');
+        return;
+      }
+
+      const headers = ['ID', 'Date', 'Department', 'Category', 'Title', 'Value', 'Status', 'Notes'];
+      const rows = recordsData.map(r => [
+        `"${r.id}"`,
+        `"${r.date}"`,
+        `"${r.dept}"`,
+        `"${r.category}"`,
+        `"${r.title.replace(/"/g, '""')}"`,
+        r.value,
+        `"${r.status}"`,
+        `"${(r.notes || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `agency_data_export_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('ส่งออกไฟล์ CSV สำเร็จแล้ว');
+    }
+  </script>
+</body>
+</html>
